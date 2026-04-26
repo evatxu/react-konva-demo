@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 33% 98%;
+  --foreground: 217 33% 17%;
+  --card: 0 0% 100%;
+  --card-foreground: 217 33% 17%;
+  --primary: 212 88% 45%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 30% 96%;
+  --secondary-foreground: 217 30% 24%;
+  --accent: 25 95% 58%;
+  --accent-foreground: 24 70% 18%;
+  --muted: 210 30% 96%;
+  --muted-foreground: 215 16% 47%;
+  --border: 214 22% 89%;
+  --input: 214 22% 89%;
+  --ring: 212 88% 45%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(86, 141, 255, 0.12), transparent 26%),
+    radial-gradient(circle at top right, rgba(255, 137, 81, 0.08), transparent 18%),
+    linear-gradient(180deg, #f5f7fb 0%, #eef3f9 100%);
+  color: hsl(var(--foreground));
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.editor-grid {
+  background-image:
+    linear-gradient(rgba(142, 149, 168, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(142, 149, 168, 0.08) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(18px);
+}
+
+.dot-pattern {
+  background-image: radial-gradient(circle, rgba(80, 94, 132, 0.12) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+
+.studio-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
