@@ -1,10 +1,9 @@
 import { NextRequest } from "next/server";
 
 import { clearSessionCookie, jsonSuccess, requireSession, withServiceError } from "@/lib/api/http";
-import { logoutSession } from "@/lib/api/mock-store";
 
-export function POST(request: NextRequest) {
-  const auth = requireSession(request, "user");
+export async function POST(request: NextRequest) {
+  const auth = await requireSession(request, "user");
   if (!auth.ok) {
     const response = auth.response;
     clearSessionCookie(response, "user");
@@ -12,7 +11,6 @@ export function POST(request: NextRequest) {
   }
 
   try {
-    logoutSession(auth.context.session.token, "user");
     const response = jsonSuccess({
       loggedOut: true
     });

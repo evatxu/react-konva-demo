@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
 
 import { jsonSuccess, parseJsonBody, requireSession, withServiceError } from "@/lib/api/http";
-import { exportProjectRecords } from "@/lib/api/mock-store";
+import { exportProjectRecords } from "@/lib/api/postgres-store";
 import type { ExportFormat } from "@/lib/pigeon-studio";
 
 export async function POST(request: NextRequest, context: { params: { projectId: string } }) {
-  const auth = requireSession(request, "user");
+  const auth = await requireSession(request, "user");
   if (!auth.ok) {
     return auth.response;
   }
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest, context: { params: { projectId:
       itemIds?: string[];
       format?: ExportFormat;
     }>(request);
-    return jsonSuccess(exportProjectRecords(auth.context.user.id, context.params.projectId, body));
+    return jsonSuccess(await exportProjectRecords(auth.context.user.id, context.params.projectId, body));
   } catch (error) {
     return withServiceError(error);
   }

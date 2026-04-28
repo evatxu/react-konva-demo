@@ -1,23 +1,23 @@
 import { NextRequest } from "next/server";
 
 import { jsonSuccess, parseJsonBody, requireSession, withServiceError } from "@/lib/api/http";
-import { getAdminConfig, updateAdminConfig } from "@/lib/api/mock-store";
+import { getAdminConfig, updateAdminConfig } from "@/lib/api/postgres-store";
 
-export function GET(request: NextRequest) {
-  const auth = requireSession(request, "admin");
+export async function GET(request: NextRequest) {
+  const auth = await requireSession(request, "admin");
   if (!auth.ok) {
     return auth.response;
   }
 
   try {
-    return jsonSuccess(getAdminConfig());
+    return jsonSuccess(await getAdminConfig());
   } catch (error) {
     return withServiceError(error);
   }
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = requireSession(request, "admin");
+  const auth = await requireSession(request, "admin");
   if (!auth.ok) {
     return auth.response;
   }
@@ -29,7 +29,7 @@ export async function PATCH(request: NextRequest) {
       uploadNamingRules?: string[];
       uploadTips?: string[];
     }>(request);
-    return jsonSuccess(updateAdminConfig(body));
+    return jsonSuccess(await updateAdminConfig(body, auth.context.user.id));
   } catch (error) {
     return withServiceError(error);
   }

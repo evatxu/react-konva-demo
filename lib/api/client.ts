@@ -169,6 +169,11 @@ export const apiClient = {
       })
   },
   admin: {
+    register: (payload: { username?: string; password?: string }) =>
+      apiFetch("/api/admin/auth/register", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }),
     login: (payload: { username?: string; password?: string }) =>
       apiFetch("/api/admin/auth/login", {
         method: "POST",

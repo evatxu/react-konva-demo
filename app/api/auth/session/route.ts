@@ -1,13 +1,13 @@
 import { NextRequest } from "next/server";
 
 import { jsonSuccess, requireSession } from "@/lib/api/http";
-import { buildUserSessionPayload } from "@/lib/api/mock-store";
+import { buildUserSessionPayload } from "@/lib/api/postgres-store";
 
-export function GET(request: NextRequest) {
-  const auth = requireSession(request, "user");
+export async function GET(request: NextRequest) {
+  const auth = await requireSession(request, "user");
   if (!auth.ok) {
     return auth.response;
   }
 
-  return jsonSuccess(buildUserSessionPayload(auth.context.user.id));
+  return jsonSuccess(await buildUserSessionPayload(auth.context.user.id));
 }

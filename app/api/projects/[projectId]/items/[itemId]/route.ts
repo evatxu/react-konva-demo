@@ -1,14 +1,14 @@
 import { NextRequest } from "next/server";
 
 import { jsonSuccess, parseJsonBody, requireSession, withServiceError } from "@/lib/api/http";
-import { updateProjectItem } from "@/lib/api/mock-store";
+import { updateProjectItem } from "@/lib/api/postgres-store";
 import type { ProjectItem } from "@/lib/pigeon-studio";
 
 export async function PATCH(
   request: NextRequest,
   context: { params: { projectId: string; itemId: string } }
 ) {
-  const auth = requireSession(request, "user");
+  const auth = await requireSession(request, "user");
   if (!auth.ok) {
     return auth.response;
   }
@@ -20,7 +20,9 @@ export async function PATCH(
         sharedFields?: Array<"owner" | "region" | "raceRank" | "windSpeed" | "basketCount" | "note">;
       }
     >(request);
-    return jsonSuccess(updateProjectItem(auth.context.user.id, context.params.projectId, context.params.itemId, body));
+    return jsonSuccess(
+      await updateProjectItem(auth.context.user.id, context.params.projectId, context.params.itemId, body)
+    );
   } catch (error) {
     return withServiceError(error);
   }

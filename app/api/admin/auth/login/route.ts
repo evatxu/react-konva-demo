@@ -1,5 +1,5 @@
 import { jsonSuccess, parseJsonBody, setSessionCookie, withServiceError } from "@/lib/api/http";
-import { loginAdmin } from "@/lib/api/mock-store";
+import { loginAdmin } from "@/lib/api/postgres-store";
 
 export async function POST(request: Request) {
   try {
@@ -7,7 +7,7 @@ export async function POST(request: Request) {
       username?: string;
       password?: string;
     }>(request);
-    const result = loginAdmin(body.username);
+    const result = await loginAdmin(body.username, body.password);
     const response = jsonSuccess({
       user: result.user
     });

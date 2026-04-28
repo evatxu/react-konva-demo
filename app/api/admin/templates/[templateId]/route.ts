@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 
 import { jsonSuccess, parseJsonBody, requireSession, withServiceError } from "@/lib/api/http";
-import { updateAdminTemplate } from "@/lib/api/mock-store";
+import { updateAdminTemplate } from "@/lib/api/postgres-store";
 
 export async function PATCH(request: NextRequest, context: { params: { templateId: string } }) {
-  const auth = requireSession(request, "admin");
+  const auth = await requireSession(request, "admin");
   if (!auth.ok) {
     return auth.response;
   }
@@ -18,7 +18,7 @@ export async function PATCH(request: NextRequest, context: { params: { templateI
       enabled?: boolean;
       sortOrder?: number;
     }>(request);
-    return jsonSuccess(updateAdminTemplate(context.params.templateId, body));
+    return jsonSuccess(await updateAdminTemplate(context.params.templateId, body));
   } catch (error) {
     return withServiceError(error);
   }

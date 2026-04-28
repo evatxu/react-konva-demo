@@ -1,16 +1,16 @@
 import { NextRequest } from "next/server";
 
 import { jsonSuccess, requireSession, withServiceError } from "@/lib/api/http";
-import { payOrder } from "@/lib/api/mock-store";
+import { payOrder } from "@/lib/api/postgres-store";
 
-export function POST(request: NextRequest, context: { params: { orderId: string } }) {
-  const auth = requireSession(request, "user");
+export async function POST(request: NextRequest, context: { params: { orderId: string } }) {
+  const auth = await requireSession(request, "user");
   if (!auth.ok) {
     return auth.response;
   }
 
   try {
-    return jsonSuccess(payOrder(auth.context.user.id, context.params.orderId));
+    return jsonSuccess(await payOrder(auth.context.user.id, context.params.orderId));
   } catch (error) {
     return withServiceError(error);
   }

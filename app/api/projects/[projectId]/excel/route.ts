@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 
 import { jsonSuccess, parseJsonBody, requireSession, withServiceError } from "@/lib/api/http";
-import { importProjectExcel } from "@/lib/api/mock-store";
+import { importProjectExcel } from "@/lib/api/postgres-store";
 
 export async function POST(request: NextRequest, context: { params: { projectId: string } }) {
-  const auth = requireSession(request, "user");
+  const auth = await requireSession(request, "user");
   if (!auth.ok) {
     return auth.response;
   }
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, context: { params: { projectId:
         note?: string;
       }>;
     }>(request);
-    return jsonSuccess(importProjectExcel(auth.context.user.id, context.params.projectId, body));
+    return jsonSuccess(await importProjectExcel(auth.context.user.id, context.params.projectId, body));
   } catch (error) {
     return withServiceError(error);
   }

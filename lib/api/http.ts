@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { ApiServiceError, type ApiResponse, type SessionRole } from "@/lib/api/contracts";
-import { getSessionContext } from "@/lib/api/mock-store";
+import { getSessionContext } from "@/lib/api/postgres-store";
 
 export const USER_SESSION_COOKIE = "pigeon_demo_session";
 export const ADMIN_SESSION_COOKIE = "pigeon_demo_admin_session";
@@ -51,7 +51,7 @@ export async function parseJsonBody<T>(request: Request) {
   }
 }
 
-export function requireSession(request: NextRequest, role: SessionRole) {
+export async function requireSession(request: NextRequest, role: SessionRole) {
   const token = request.cookies.get(getCookieName(role))?.value;
   if (!token) {
     return {
@@ -61,7 +61,7 @@ export function requireSession(request: NextRequest, role: SessionRole) {
   }
 
   try {
-    const context = getSessionContext(token, role);
+    const context = await getSessionContext(token, role);
     return {
       ok: true as const,
       context
