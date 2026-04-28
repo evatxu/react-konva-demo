@@ -148,6 +148,11 @@ export interface UserSessionPayload {
   projectCount: number;
 }
 
+export interface AdminSessionPayload {
+  user: ApiUser;
+  session: ApiSession;
+}
+
 export interface ProjectDetailPayload {
   project: Project;
   summary: ProjectSummary;

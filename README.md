@@ -73,6 +73,20 @@ yarn dev
 yarn typecheck
 ```
 
+### 5. 导入模板数据
+
+如需初始化 3 个模板到 `template_groups` 表，可执行：
+
+```bash
+yarn seed:templates
+```
+
+该脚本会按 `code` 做幂等更新/插入，默认导入以下模板：
+
+- `classic-racing-pro` / `竞技旗舰版`
+- `public-loft-blueprint` / `公棚荣耀版`
+- `crown-night-deluxe` / `冠军典藏版`
+
 ## 数据库
 
 PostgreSQL 连接封装位于 [`lib/db/postgres.ts`](./lib/db/postgres.ts)，提供以下能力：

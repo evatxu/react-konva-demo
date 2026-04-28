@@ -1,17 +1,51 @@
 import type {
+  AdminConfig,
+  AdminSessionPayload,
   ApiErrorShape,
+  EntitlementSnapshot,
+  ItemsPayload,
+  PaymentOrder,
+  ProcessingJob,
+  ProjectDetailPayload,
+  ProjectExportTicket,
+  ProjectSummary,
+  TemplateRecord,
+  UserSessionPayload,
+  ApiUser
+} from "@/lib/api/contracts";
+import type {
   ApiResponse
 } from "@/lib/api/contracts";
 import type {
   ExportFormat,
+  Order,
+  ProductOption,
+  Project,
   ProjectFields,
   ProjectItem,
   RecordStatus,
+  UploadedAsset,
   UploadKind
 } from "@/lib/pigeon-studio";
 
+export class ApiClientError extends Error {
+  status: number;
+  code: string;
+  details?: unknown;
+
+  constructor(status: number, code: string, message: string, details?: unknown) {
+    super(message);
+    this.name = "ApiClientError";
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
 async function apiFetch<T>(input: string, init?: RequestInit) {
   const response = await fetch(input, {
+    credentials: "same-origin",
+    cache: "no-store",
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -22,7 +56,7 @@ async function apiFetch<T>(input: string, init?: RequestInit) {
   const payload = (await response.json()) as ApiResponse<T> | ApiErrorShape;
   if (!response.ok || !payload.success) {
     const error = "error" in payload ? payload.error : { code: "unknown_error", message: "请求失败" };
-    throw new Error(error.message);
+    throw new ApiClientError(response.status, error.code, error.message, error.details);
   }
   return payload.data;
 }
@@ -30,34 +64,34 @@ async function apiFetch<T>(input: string, init?: RequestInit) {
 export const apiClient = {
   auth: {
     login: (payload: { phone?: string; password?: string }) =>
-      apiFetch("/api/auth/login", {
+      apiFetch<UserSessionPayload>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify(payload)
       }),
-    session: () => apiFetch("/api/auth/session"),
+    session: () => apiFetch<UserSessionPayload>("/api/auth/session"),
     logout: () =>
-      apiFetch("/api/auth/logout", {
+      apiFetch<{ loggedOut: boolean }>("/api/auth/logout", {
         method: "POST",
         body: JSON.stringify({})
       })
   },
   templates: {
-    list: () => apiFetch("/api/templates")
+    list: () => apiFetch<Array<TemplateRecord & { locked: boolean }>>("/api/templates")
   },
   products: {
-    list: () => apiFetch("/api/products")
+    list: () => apiFetch<ProductOption[]>("/api/products")
   },
   account: {
-    entitlements: () => apiFetch("/api/account/entitlements")
+    entitlements: () => apiFetch<EntitlementSnapshot>("/api/account/entitlements")
   },
   projects: {
-    list: () => apiFetch("/api/projects"),
+    list: () => apiFetch<ProjectSummary[]>("/api/projects"),
     create: (payload: { name?: string; description?: string; templateId?: string; fields?: Partial<ProjectFields> }) =>
-      apiFetch("/api/projects", {
+      apiFetch<ProjectDetailPayload>("/api/projects", {
         method: "POST",
         body: JSON.stringify(payload)
       }),
-    detail: (projectId: string) => apiFetch(`/api/projects/${projectId}`),
+    detail: (projectId: string) => apiFetch<ProjectDetailPayload>(`/api/projects/${projectId}`),
     update: (
       projectId: string,
       payload: {
@@ -67,16 +101,16 @@ export const apiClient = {
         activeItemId?: string | null;
       }
     ) =>
-      apiFetch(`/api/projects/${projectId}`, {
+      apiFetch<ProjectDetailPayload>(`/api/projects/${projectId}`, {
         method: "PATCH",
         body: JSON.stringify(payload)
       }),
     remove: (projectId: string) =>
-      apiFetch(`/api/projects/${projectId}`, {
+      apiFetch<{ deleted: boolean; activeProjectId: string | null }>(`/api/projects/${projectId}`, {
         method: "DELETE"
       }),
     changeTemplate: (projectId: string, templateId: string) =>
-      apiFetch(`/api/projects/${projectId}/template`, {
+      apiFetch<ProjectDetailPayload>(`/api/projects/${projectId}/template`, {
         method: "POST",
         body: JSON.stringify({ templateId })
       }),
@@ -95,7 +129,12 @@ export const apiClient = {
         }>;
       }
     ) =>
-      apiFetch(`/api/projects/${projectId}/uploads`, {
+      apiFetch<{
+        uploadedAssets: UploadedAsset[];
+        affectedItems: ProjectItem[];
+        project: Project;
+        summary: ProjectSummary;
+      }>(`/api/projects/${projectId}/uploads`, {
         method: "POST",
         body: JSON.stringify(payload)
       }),
@@ -115,7 +154,16 @@ export const apiClient = {
         }>;
       }
     ) =>
-      apiFetch(`/api/projects/${projectId}/excel`, {
+      apiFetch<{
+        project: Project;
+        summary: ProjectSummary;
+        importSummary: {
+          totalRows: number;
+          updatedCount: number;
+          createdCount: number;
+          ignoredCount: number;
+        };
+      }>(`/api/projects/${projectId}/excel`, {
         method: "POST",
         body: JSON.stringify(payload)
       }),
@@ -128,7 +176,7 @@ export const apiClient = {
         params.set("keyword", filters.keyword);
       }
       const query = params.toString();
-      return apiFetch(`/api/projects/${projectId}/items${query ? `?${query}` : ""}`);
+      return apiFetch<ItemsPayload>(`/api/projects/${projectId}/items${query ? `?${query}` : ""}`);
     },
     updateItem: (
       projectId: string,
@@ -138,50 +186,51 @@ export const apiClient = {
         sharedFields?: Array<"owner" | "region" | "raceRank" | "windSpeed" | "basketCount" | "note">;
       }
     ) =>
-      apiFetch(`/api/projects/${projectId}/items/${itemId}`, {
+      apiFetch<{ item: ProjectItem; summary: ProjectSummary }>(`/api/projects/${projectId}/items/${itemId}`, {
         method: "PATCH",
         body: JSON.stringify(payload)
       }),
     retryItem: (projectId: string, itemId: string) =>
-      apiFetch(`/api/projects/${projectId}/items/${itemId}/retry`, {
+      apiFetch<{ item: ProjectItem; retryAccepted: boolean }>(`/api/projects/${projectId}/items/${itemId}/retry`, {
         method: "POST",
         body: JSON.stringify({})
       }),
     exportItems: (projectId: string, payload: { itemIds?: string[]; format?: ExportFormat }) =>
-      apiFetch(`/api/projects/${projectId}/exports`, {
+      apiFetch<{ ticket: ProjectExportTicket; summary: ProjectSummary; entitlement: EntitlementSnapshot }>(`/api/projects/${projectId}/exports`, {
         method: "POST",
         body: JSON.stringify(payload)
       }),
-    jobs: (projectId: string) => apiFetch(`/api/projects/${projectId}/jobs`)
+    jobs: (projectId: string) => apiFetch<ProcessingJob[]>(`/api/projects/${projectId}/jobs`)
   },
   orders: {
-    list: () => apiFetch("/api/orders"),
+    list: () => apiFetch<PaymentOrder[]>("/api/orders"),
     create: (productId: string) =>
-      apiFetch("/api/orders", {
+      apiFetch<PaymentOrder>("/api/orders", {
         method: "POST",
         body: JSON.stringify({ productId })
       }),
-    detail: (orderId: string) => apiFetch(`/api/orders/${orderId}`),
+    detail: (orderId: string) => apiFetch<PaymentOrder>(`/api/orders/${orderId}`),
     pay: (orderId: string) =>
-      apiFetch(`/api/orders/${orderId}/pay`, {
+      apiFetch<{ order: PaymentOrder; entitlement: EntitlementSnapshot }>(`/api/orders/${orderId}/pay`, {
         method: "POST",
         body: JSON.stringify({})
       })
   },
   admin: {
     register: (payload: { username?: string; password?: string }) =>
-      apiFetch("/api/admin/auth/register", {
+      apiFetch<{ user: ApiUser }>("/api/admin/auth/register", {
         method: "POST",
         body: JSON.stringify(payload)
       }),
     login: (payload: { username?: string; password?: string }) =>
-      apiFetch("/api/admin/auth/login", {
+      apiFetch<{ user: ApiUser }>("/api/admin/auth/login", {
         method: "POST",
         body: JSON.stringify(payload)
       }),
-    users: () => apiFetch("/api/admin/users"),
-    orders: () => apiFetch("/api/admin/orders"),
-    templates: () => apiFetch("/api/admin/templates"),
+    session: () => apiFetch<AdminSessionPayload>("/api/admin/auth/session"),
+    users: () => apiFetch<Array<ApiUser & { account: unknown; projectCount: number; activeProjectId: string | null; latestProjectUpdatedAt?: string }>>("/api/admin/users"),
+    orders: () => apiFetch<PaymentOrder[]>("/api/admin/orders"),
+    templates: () => apiFetch<TemplateRecord[]>("/api/admin/templates"),
     updateTemplate: (
       templateId: string,
       payload: {
@@ -193,18 +242,18 @@ export const apiClient = {
         sortOrder?: number;
       }
     ) =>
-      apiFetch(`/api/admin/templates/${templateId}`, {
+      apiFetch<TemplateRecord>(`/api/admin/templates/${templateId}`, {
         method: "PATCH",
         body: JSON.stringify(payload)
       }),
-    config: () => apiFetch("/api/admin/config"),
+    config: () => apiFetch<AdminConfig>("/api/admin/config"),
     updateConfig: (payload: {
       freeDailyQuota?: number;
       watermarkOnFree?: boolean;
       uploadNamingRules?: string[];
       uploadTips?: string[];
     }) =>
-      apiFetch("/api/admin/config", {
+      apiFetch<AdminConfig>("/api/admin/config", {
         method: "PATCH",
         body: JSON.stringify(payload)
       })

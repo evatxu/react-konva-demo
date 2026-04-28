@@ -5,6 +5,7 @@ import { getSessionContext } from "@/lib/api/postgres-store";
 
 export const USER_SESSION_COOKIE = "pigeon_demo_session";
 export const ADMIN_SESSION_COOKIE = "pigeon_demo_admin_session";
+const SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 function getCookieName(role: SessionRole) {
   return role === "admin" ? ADMIN_SESSION_COOKIE : USER_SESSION_COOKIE;
@@ -78,7 +79,10 @@ export function setSessionCookie(response: NextResponse, role: SessionRole, toke
   response.cookies.set(getCookieName(role), token, {
     httpOnly: true,
     sameSite: "lax",
-    path: "/"
+    path: "/",
+    maxAge: SESSION_COOKIE_MAX_AGE_SECONDS,
+    expires: new Date(Date.now() + SESSION_COOKIE_MAX_AGE_SECONDS * 1000),
+    secure: process.env.NODE_ENV === "production"
   });
   return response;
 }
